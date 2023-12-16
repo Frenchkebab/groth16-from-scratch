@@ -74,17 +74,30 @@ contract Groth16Verifier {
     /*=                              Verifier                                   =*/
     /*===========================================================================*/
 
-    function verify(
-        G1Point memory A1,
-        G2Point memory B2,
-        G1Point memory C1
-    ) external view returns(bool) {
-        
+    function verify(G1Point memory A1, G2Point memory B2, G1Point memory C1, uint256[2] memory publicInputs)
+        external
+        view
+        returns (bool)
+    {
         G1Point memory negA1 = _neg(A1);
 
-        uint256 num = 18;
+        // TODO
+        // The powers of tau for public inputs
+        G1Point[2] memory IC = [
+            G1Point(
+                1734927732345068694301515209562532239318600504317180308729057773769848558699,
+                19722566664570487528650939874173356232826447202146540143123675137388417037501
+            ),
+            G1Point(
+                6438840577582292625162118885091812192178203930942724297089946023082472068656,
+                5493842616449798024334563058642067236932794156239635055798105809241989463253
+            )
+        ];
+
+        G1Point memory PI1 = _ecAdd(_ecScalarMul(IC[0], publicInputs[0]), _ecScalarMul(IC[1], publicInputs[1]));
+
         // checks if paring(A1, B2) == pairing(alpha1, beta2) = pairing(C1, G2)
-        uint256[18] memory input = [
+        uint256[24] memory input = [
             // pairing(-A1, B2)
             negA1.x,
             negA1.y,
@@ -99,25 +112,31 @@ contract Groth16Verifier {
             beta2.x[0],
             beta2.y[1],
             beta2.y[0],
-            // pairing(C1, G2)
+            // pairing(PI1, gamm2) - PI1 is public input
+            PI1.x,
+            PI1.y,
+            gamma2.x[1],
+            gamma2.x[0],
+            gamma2.y[1],
+            gamma2.y[0],
+            // pairing(C1, delta2)
             C1.x,
             C1.y,
-            G2.x[1],
-            G2.x[0],
-            G2.y[1],
-            G2.y[0]
+            delta2.x[1],
+            delta2.x[0],
+            delta2.y[1],
+            delta2.y[0]
         ];
 
         bool success = false;
         assembly {
-            success := staticcall(gas(), 0x08, input, mul(18, 0x20), input, 0x20)
+            success := staticcall(gas(), 0x08, input, mul(24, 0x20), input, 0x20)
         }
 
         require(success, "pairing failed");
 
         return success;
     }
-
 
     /*===========================================================================*/
     /*=                              Helpers                                    =*/
@@ -158,7 +177,7 @@ contract Groth16Verifier {
      * @param   P  EC Point
      * @return  EC Point s*P
      */
-    function _scalarMul(uint256 s, G1Point memory P) private view returns (G1Point memory) {
+    function _ecScalarMul(G1Point memory P, uint256 s) private view returns (G1Point memory) {
         (bool ok, bytes memory result) = address(7).staticcall(abi.encode(P.x, P.y, s));
 
         require(ok, "failed EC multiplication");

@@ -1,5 +1,5 @@
 import numpy as np
-from py_ecc.bn128 import G1, G2, add, multiply, curve_order, eq, Z1, Z2
+from py_ecc.bn128 import G1, G2, add, multiply, curve_order, field_modulus, eq, Z1, Z2
 import galois
 import random
 from functools import reduce
@@ -132,15 +132,18 @@ def get_qap(_x, _y):
 
     assert Ua * Va == Wa + h * t, "division has a remainder"
 
-    return U, V, W, a, Ua, Va, Wa, h, t
+    # Index of Private Input
+    l = 2
 
-def trusted_setup(U, V, W, t, degree):
+    return U, V, W, a, Ua, Va, Wa, h, t, l
+
+def trusted_setup(U, V, W, t, degree, l):
     tau = GF(random.randint(1, curve_order - 1))
 
     # thse values are supposed to be picked randomly by the trusted setup and kept secret
     alpha = GF(2)
     beta = GF(3)
-    gammma = GF(4)
+    gamma = GF(4)
     delta = GF(5)
     
     # [tau^0 * G1, tau^1 * G1, ..., tau^degree * G1]
@@ -149,11 +152,9 @@ def trusted_setup(U, V, W, t, degree):
     # [tau^0 * G2, tau^1 * G2, ..., tau^degree * G2]
     powers_of_tau_B = [multiply(G2, int(tau ** i)) for i in range(degree + 1)] 
 
-
-
-    beta_U_tau = [beta * poly(tau) for poly in U] # [beta * u_0(tau), beta * u_1(tau), ..., beta * u_n-1(tau))]
-    alpha_V_tau = [alpha * poly(tau) for poly in V] # [alpha * v_0(tau), alpha * v_1(tau), ..., alpha * v_n-1(tau))]
-    W_tau = [poly(tau) for poly in W] # [w_0(tau), w_1(tau), ..., w_n-1(tau))]
+    beta_U_tau = np.array([beta * poly(tau) for poly in U]) # [beta * u_0(tau), beta * u_1(tau), ..., beta * u_n-1(tau))]
+    alpha_V_tau = np.array([alpha * poly(tau) for poly in V]) # [alpha * v_0(tau), alpha * v_1(tau), ..., alpha * v_n-1(tau))]
+    W_tau = np.array([poly(tau) for poly in W]) # [w_0(tau), w_1(tau), ..., w_n-1(tau))]
 
     # [
     #    beta*u_0(tau) + alpha*v_0(tau) + w_0(tau), 
@@ -163,14 +164,21 @@ def trusted_setup(U, V, W, t, degree):
     #  ]
     C_tau = beta_U_tau + alpha_V_tau + W_tau 
 
-    # [tau^0 * (c*G1), tau^1 * (c*G1), ..., tau^n-1 * (c*G1)]
-    powers_of_tau_C = [multiply(G1,int(c)) for c in C_tau]  
+    gamma_inverse = pow(int(gamma), -1, curve_order)
+    delta_inverse = pow(int(delta), -1, curve_order)
+
+    # [tau^0 * (c(tau)*G1), tau^1 * (c(tau)*G1), ..., tau^l * (c(tau)*G1)]
+    powers_of_tau_C_public = [multiply(G1,int(c*gamma_inverse)) for c in C_tau[:l]]
+    # [tau^l * (c(tau)*G1), tau^l+1 * (c(tau)*G1), ..., tau^degree(t) * (c(tau)*G1)]
+    powers_of_tau_C_private = [multiply(G1,int(c*delta_inverse)) for c in C_tau[l:]] 
 
     # [tau^0 * (t(tau)*G1), tau^1 * (t(tau)*G1), ..., tau^degree(t) * (t(tau)*G1)]
     powers_of_tau_HT = [multiply(G1, int(tau**i * t(tau))) for i in range(t.degree)] 
 
     alpha1 = multiply(G1, int(alpha))
     beta2 = multiply(G2, int(beta))
+    gamma2 = multiply(G2, int(gamma))
+    delta2 = multiply(G2, int(delta))
 
-    return powers_of_tau_A, powers_of_tau_B, powers_of_tau_C, powers_of_tau_HT, alpha1, beta2
+    return powers_of_tau_A, powers_of_tau_B, powers_of_tau_C_public, powers_of_tau_C_private, powers_of_tau_HT, alpha1, beta2, gamma, delta
 
