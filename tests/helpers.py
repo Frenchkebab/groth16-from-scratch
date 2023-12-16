@@ -1,11 +1,11 @@
 import numpy as np
-from py_ecc.bn128 import G1, G2, add, multiply, curve_order, field_modulus, eq, Z1, Z2
+from py_ecc.bn128 import G1, G2, add, multiply, curve_order, Z1, Z2
 import galois
 import random
 from functools import reduce
 
 # Just to make running the tests faster
-curve_order = 79
+# curve_order = 79
 
 class G1Point:
     def __init__(self, Point):
@@ -32,8 +32,6 @@ class G2Point:
                     [repr(self.y1),
                     repr(self.y2)]
                 ]
-
-# curve_order = 79
 
 GF = galois.GF(curve_order)
 

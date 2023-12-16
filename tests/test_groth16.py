@@ -13,6 +13,7 @@ def groth16Verifier_contract(deployer, project):
     return deployer.deploy(project.Groth16Verifier)
 
 def test_verify(groth16Verifier_contract):
+    # values of x and y of 3*x*x*y + 5*x*y - x - 2*y
     x = random.randint(1, curve_order - 1)
     y = random.randint(1, curve_order - 1)
 
