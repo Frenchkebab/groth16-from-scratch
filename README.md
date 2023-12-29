@@ -1,19 +1,22 @@
 # Groth16 Implementation from scratch
 
-## Install
+## Install & Run Script
 
 ```
+# clone repository
+git clone git@github.com:Frenchkebab/groth16-from-scratch.git
+
+# install dependencies
 python -m venv ape-devel
 source ape-devel/bin/activate
 pip install --upgrade pip
 pip install eth-ape'[recommended-plugins]'
+
+# run script
+ape test
 ```
 Since Field Prim of BN128 curve is very big, this test takes a while
 
-## Running Script
-```
-ape test
-```
 
 ## Groth16Verifier.sol
 
