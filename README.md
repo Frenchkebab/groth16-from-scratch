@@ -5,6 +5,7 @@
 ```
 # clone repository
 git clone git@github.com:Frenchkebab/groth16-from-scratch.git
+cd groth16-from-scratch
 
 # install dependencies
 python -m venv ape-devel
